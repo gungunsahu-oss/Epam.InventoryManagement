@@ -1,0 +1,18 @@
+CREATE DATABASE EpamInventoryDB;
+GO
+
+USE EpamInventoryDB;
+GO
+
+CREATE TABLE Products
+(
+    ProductId INT IDENTITY(1,1) PRIMARY KEY,
+    Name NVARCHAR(100) NOT NULL,
+    Category NVARCHAR(100) NOT NULL,
+    Price DECIMAL(18,2) NOT NULL,
+    Quantity INT NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedDate DATETIME NOT NULL DEFAULT GETDATE()
+);
+GO
+

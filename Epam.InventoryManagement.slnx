@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Epam.InventoryManagement.Application/Epam.InventoryManagement.Application.csproj" />
+  <Project Path="Epam.InventoryManagement.ConsoleClient/Epam.InventoryManagement.ConsoleClient.csproj" />
+  <Project Path="Epam.InventoryManagement.Domain/Epam.InventoryManagement.Domain.csproj" />
+  <Project Path="Epam.InventoryManagement.Infrastructure/Epam.InventoryManagement.Infrastructure.csproj" />
+  <Project Path="Epam.InventoryManagement/Epam.InventoryManagement.API.csproj" />
+</Solution>
