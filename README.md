@@ -127,6 +127,34 @@ CREATE TABLE Products (
 
 ---
 
+## 🖥️ Sample Console Output
+
+
+===== EPAM Inventory Management System =====
+1. Add Product
+2. View All Products
+3. View Product by ID
+4. Update Product
+5. Delete Product
+6. Search Products
+7. Exit
+Enter choice: 1
+
+Name: IPhone
+Category: Electronics
+Price: 1234567
+Quantity: 67
+✔ Product added successfully.
+
+===== EPAM Inventory Management System =====
+Enter choice: 2
+
+ID: 1, Name: Laptop, Category: Electronics, Price: 87.00, Qty: 87
+ID: 4, Name: PEN, Category: Stationary, Price: 5678.00, Qty: 678
+ID: 5, Name: Charger, Category: Electronics, Price: 6.00, Qty: 8
+ID: 6, Name: IPhone, Category: Electronics, Price: 1234567.00, Qty: 67
+
+
 ## 🧩 Logging
 
 * All operations (Add, Update, Delete, Search) and exceptions are logged using **Serilog**.
