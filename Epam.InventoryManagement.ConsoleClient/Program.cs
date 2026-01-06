@@ -1,212 +1,231 @@
-﻿using Epam.InventoryManagement.ConsoleClient.DTOs;
+﻿using System;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Json;
-using System.Text.Json;
+using System.Threading.Tasks;
+using Epam.InventoryManagement.Application.DTOs;
 
-// ---------------- CONFIG ----------------
-const string API_BASE_URL = "https://localhost:5001/"; // change port if needed
-
-HttpClient client = new()
+class Program
 {
-    BaseAddress = new Uri(API_BASE_URL)
-};
+    private const string API_BASE_URL = "https://localhost:5001/";
 
-// ----------------------------------------
-
-Console.WriteLine("===== EPAM Inventory Management System =====");
-
-while (true)
-{
-    try
+    static async Task Main()
     {
-        Console.WriteLine("\nChoose an option:");
-        Console.WriteLine("1. Add Product");
-        Console.WriteLine("2. View All Products");
-        Console.WriteLine("3. View Product by ID");
-        Console.WriteLine("4. Update Product");
-        Console.WriteLine("5. Delete Product");
-        Console.WriteLine("6. Search Products");
-        Console.WriteLine("7. Exit");
+        using var client = new HttpClient { BaseAddress = new Uri(API_BASE_URL) };
 
-        Console.Write("Enter choice: ");
-        int choice = int.Parse(Console.ReadLine()!);
-
-        switch (choice)
+        while (true)
         {
-            case 1:
-                await AddProduct();
-                break;
+            Console.Clear();
+            Console.WriteLine("==============================================");
+            Console.WriteLine("        INVENTORY MANAGEMENT SYSTEM");
+            Console.WriteLine("==============================================");
+            Console.WriteLine("1. Add Product");
+            Console.WriteLine("2. View All Products");
+            Console.WriteLine("3. View Product by ID");
+            Console.WriteLine("4. Update Product");
+            Console.WriteLine("5. Delete Product");
+            Console.WriteLine("6. Search Products");
+            Console.WriteLine("7. Exit");
+            Console.Write("\nEnter your choice: ");
 
-            case 2:
-                await ViewAllProducts();
-                break;
+            if (!int.TryParse(Console.ReadLine(), out int choice))
+                continue;
 
-            case 3:
-                await ViewProductById();
-                break;
-
-            case 4:
-                await UpdateProduct();
-                break;
-
-            case 5:
-                await DeleteProduct();
-                break;
-
-            case 6:
-                await SearchProducts();
-                break;
-
-            case 7:
-                Console.WriteLine("Exiting application...");
-                return;
-
-            default:
-                Console.WriteLine("Invalid choice.");
-                break;
+            switch (choice)
+            {
+                case 1: await AddProduct(client); break;
+                case 2: await ViewAllProducts(client); break;
+                case 3: await ViewProductById(client); break;
+                case 4: await UpdateProduct(client); break;
+                case 5: await DeleteProduct(client); break;
+                case 6: await SearchProducts(client); break;
+                case 7: return;
+            }
         }
     }
-    catch (Exception ex)
+
+    // ---------------- UI HELPERS ----------------
+    static void Header(string title)
     {
-        Console.WriteLine($"Error: {ex.Message}");
-    }
-}
-
-// ---------------- METHODS ----------------
-
-async Task AddProduct()
-{
-    Console.Write("Name: ");
-    string name = Console.ReadLine()!;
-
-    Console.Write("Category: ");
-    string category = Console.ReadLine()!;
-
-    Console.Write("Price: ");
-    decimal price = decimal.Parse(Console.ReadLine()!);
-
-    Console.Write("Quantity: ");
-    int quantity = int.Parse(Console.ReadLine()!);
-
-    var product = new
-    {
-        Name = name,
-        Category = category,
-        Price = price,
-        Quantity = quantity
-    };
-
-    var response = await client.PostAsJsonAsync("api/products", product);
-
-    if (response.IsSuccessStatusCode)
-        Console.WriteLine("Product added successfully.");
-    else
-        Console.WriteLine("Failed to add product.");
-}
-
-async Task ViewAllProducts()
-{
-    var products = await client.GetFromJsonAsync<List<ProductDto>>("api/products");
-
-    if (products == null || products.Count == 0)
-    {
-        Console.WriteLine("No products found.");
-        return;
+        Console.Clear();
+        Console.WriteLine("==============================================");
+        Console.WriteLine("        INVENTORY MANAGEMENT SYSTEM");
+        Console.WriteLine("==============================================\n");
+        Console.WriteLine($"------------ {title} ------------\n");
     }
 
-    Console.WriteLine("\n--- Product List ---");
-    foreach (var p in products)
+    static void Line() => Console.WriteLine("----------------------------------------------");
+
+    static void Pause()
     {
-        Console.WriteLine($"{p.ProductId} | {p.Name} | {p.Category} | ₹{p.Price} | Qty: {p.Quantity}");
-    }
-}
-
-async Task ViewProductById()
-{
-    Console.Write("Enter Product ID: ");
-    int id = int.Parse(Console.ReadLine()!);
-
-    var response = await client.GetAsync($"api/products/{id}");
-
-    if (!response.IsSuccessStatusCode)
-    {
-        Console.WriteLine("Product not found.");
-        return;
+        Console.WriteLine("\nPress any key to return to main menu...");
+        Console.ReadKey();
     }
 
-    var product = await response.Content.ReadFromJsonAsync<ProductDto>();
-
-    Console.WriteLine("\n--- Product Details ---");
-    Console.WriteLine($"ID       : {product!.ProductId}");
-    Console.WriteLine($"Name     : {product.Name}");
-    Console.WriteLine($"Category : {product.Category}");
-    Console.WriteLine($"Price    : ₹{product.Price}");
-    Console.WriteLine($"Quantity : {product.Quantity}");
-}
-
-async Task UpdateProduct()
-{
-    Console.Write("Product ID: ");
-    int id = int.Parse(Console.ReadLine()!);
-
-    Console.Write("New Name: ");
-    string name = Console.ReadLine()!;
-
-    Console.Write("New Category: ");
-    string category = Console.ReadLine()!;
-
-    Console.Write("New Price: ");
-    decimal price = decimal.Parse(Console.ReadLine()!);
-
-    Console.Write("New Quantity: ");
-    int quantity = int.Parse(Console.ReadLine()!);
-
-    var product = new
+    // ---------------- ADD PRODUCT ----------------
+    static async Task AddProduct(HttpClient client)
     {
-        ProductId = id,
-        Name = name,
-        Category = category,
-        Price = price,
-        Quantity = quantity
-    };
+        Header("Add New Product");
 
-    var response = await client.PutAsJsonAsync("api/products", product);
+        var dto = new ProductCreateDto();
 
-    if (response.IsSuccessStatusCode)
-        Console.WriteLine("Product updated successfully.");
-    else
-        Console.WriteLine("Update failed.");
-}
+        Console.Write("Enter Product Name      : ");
+        dto.Name = Console.ReadLine();
 
-async Task DeleteProduct()
-{
-    Console.Write("Enter Product ID to delete: ");
-    int id = int.Parse(Console.ReadLine()!);
+        Console.Write("Enter Product Category  : ");
+        dto.Category = Console.ReadLine();
 
-    var response = await client.DeleteAsync($"api/products/{id}");
+        Console.Write("Enter Product Price     : ");
+        dto.Price = decimal.Parse(Console.ReadLine()!);
 
-    if (response.IsSuccessStatusCode)
-        Console.WriteLine("Product deleted successfully.");
-    else
-        Console.WriteLine("Delete failed.");
-}
+        Console.Write("Enter Product Quantity  : ");
+        dto.Quantity = int.Parse(Console.ReadLine()!);
 
-async Task SearchProducts()
-{
-    Console.Write("Enter name or category: ");
-    string keyword = Console.ReadLine()!;
+        Line();
+        Console.WriteLine("1. Save Product");
+        Console.WriteLine("2. Cancel");
+        Console.Write("\nEnter your choice: ");
 
-    var products = await client.GetFromJsonAsync<List<ProductDto>>(
-        $"api/products/search?keyword={keyword}");
+        if (Console.ReadLine() != "1")
+        {
+            Console.WriteLine("Operation cancelled.");
+            Pause();
+            return;
+        }
 
-    if (products == null || products.Count == 0)
-    {
-        Console.WriteLine("No matching products found.");
-        return;
+        var response = await client.PostAsJsonAsync("api/products", dto);
+
+        Line();
+        Console.WriteLine(response.IsSuccessStatusCode
+            ? "Product added successfully."
+            : "Error adding product.");
+
+        Pause();
     }
 
-    Console.WriteLine("\n--- Search Results ---");
-    foreach (var p in products)
+    // ---------------- VIEW ALL ----------------
+    static async Task ViewAllProducts(HttpClient client)
     {
-        Console.WriteLine($"{p.ProductId} | {p.Name} | {p.Category}");
+        Header("Product List");
+
+        var products = await client.GetFromJsonAsync<ProductReadDto[]>("api/products");
+
+        Console.WriteLine("ID   Name        Category        Price     Quantity");
+        Line();
+
+        foreach (var p in products!)
+            Console.WriteLine($"{p.ProductId,-4} {p.Name,-10} {p.Category,-15} {p.Price,-9} {p.Quantity}");
+
+        Line();
+        Console.WriteLine($"Total Products: {products.Length}");
+
+        Pause();
+    }
+
+    // ---------------- VIEW BY ID ----------------
+    static async Task ViewProductById(HttpClient client)
+    {
+        Header("View Product");
+
+        Console.Write("Enter Product ID: ");
+        int id = int.Parse(Console.ReadLine()!);
+
+        var response = await client.GetAsync($"api/products/{id}");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Product not found.");
+            Pause();
+            return;
+        }
+
+        var p = await response.Content.ReadFromJsonAsync<ProductReadDto>();
+
+        Console.WriteLine("\nID   Name        Category        Price     Quantity");
+        Line();
+        Console.WriteLine($"{p!.ProductId,-4} {p.Name,-10} {p.Category,-15} {p.Price,-9} {p.Quantity}");
+
+        Pause();
+    }
+
+    // ---------------- UPDATE ----------------
+    static async Task UpdateProduct(HttpClient client)
+    {
+        Header("Update Product");
+
+        Console.Write("Enter Product ID: ");
+        int id = int.Parse(Console.ReadLine()!);
+
+        var dto = new ProductUpdateDto { ProductId = id };
+
+        Console.Write("New Name      : ");
+        dto.Name = Console.ReadLine();
+
+        Console.Write("New Category  : ");
+        dto.Category = Console.ReadLine();
+
+        Console.Write("New Price     : ");
+        dto.Price = decimal.Parse(Console.ReadLine()!);
+
+        Console.Write("New Quantity  : ");
+        dto.Quantity = int.Parse(Console.ReadLine()!);
+
+        var response = await client.PutAsJsonAsync($"api/products/{id}", dto);
+
+        Console.WriteLine(response.IsSuccessStatusCode
+            ? "\nProduct updated successfully."
+            : "\nError updating product.");
+
+        Pause();
+    }
+
+    // ---------------- DELETE ----------------
+    static async Task DeleteProduct(HttpClient client)
+    {
+        Header("Delete Product");
+
+        Console.Write("Enter Product ID: ");
+        int id = int.Parse(Console.ReadLine()!);
+
+        var response = await client.DeleteAsync($"api/products/{id}");
+
+        Console.WriteLine(response.IsSuccessStatusCode
+            ? "\nProduct deleted successfully."
+            : "\nError deleting product.");
+
+        Pause();
+    }
+
+    // ---------------- SEARCH ----------------
+    static async Task SearchProducts(HttpClient client)
+    {
+        Header("Search Products");
+
+        Console.WriteLine("1. Search by Name");
+        Console.WriteLine("2. Search by Category");
+        Line();
+        Console.Write("Enter your choice: ");
+        Console.ReadLine();
+
+        Console.Write("Enter search text (partial allowed): ");
+        var query = Console.ReadLine()!.ToLower();
+
+        var products = await client.GetFromJsonAsync<ProductReadDto[]>("api/products");
+
+        var results = products!
+            .Where(p => p.Name!.ToLower().Contains(query) ||
+                        p.Category!.ToLower().Contains(query))
+            .ToList();
+
+        Console.WriteLine("\nID   Name        Category        Price     Quantity");
+        Line();
+
+        foreach (var p in results)
+            Console.WriteLine($"{p.ProductId,-4} {p.Name,-10} {p.Category,-15} {p.Price,-9} {p.Quantity}");
+
+        Line();
+        Console.WriteLine($"Total Results: {results.Count}");
+
+        Pause();
     }
 }
