@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -16,9 +16,9 @@ class Program
         while (true)
         {
             Console.Clear();
-            Console.WriteLine("==============================================");
-            Console.WriteLine("        INVENTORY MANAGEMENT SYSTEM");
-            Console.WriteLine("==============================================");
+            Console.WriteLine("====================================================");
+            Console.WriteLine("              INVENTORY MANAGEMENT SYSTEM");
+            Console.WriteLine("====================================================");
             Console.WriteLine("1. Add Product");
             Console.WriteLine("2. View All Products");
             Console.WriteLine("3. View Product by ID");
@@ -48,13 +48,25 @@ class Program
     static void Header(string title)
     {
         Console.Clear();
-        Console.WriteLine("==============================================");
-        Console.WriteLine("        INVENTORY MANAGEMENT SYSTEM");
-        Console.WriteLine("==============================================\n");
-        Console.WriteLine($"------------ {title} ------------\n");
+        Console.WriteLine("====================================================");
+        Console.WriteLine("              INVENTORY MANAGEMENT SYSTEM");
+        Console.WriteLine("====================================================");
+        Console.WriteLine($" {title}");
+        Console.WriteLine("----------------------------------------------------");
     }
 
-    static void Line() => Console.WriteLine("----------------------------------------------");
+    static void TableHeader()
+    {
+        Console.WriteLine(
+            $"{"ID",-4} {"Name",-15} {"Category",-15} {"Price",12} {"Qty",8}");
+        Console.WriteLine(new string('-', 58));
+    }
+
+    static string Cut(string text, int max)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        return text.Length <= max ? text : text.Substring(0, max - 3) + "...";
+    }
 
     static void Pause()
     {
@@ -69,24 +81,20 @@ class Program
 
         var dto = new ProductCreateDto();
 
-        Console.Write("Enter Product Name      : ");
+        Console.Write("Name      : ");
         dto.Name = Console.ReadLine();
 
-        Console.Write("Enter Product Category  : ");
+        Console.Write("Category  : ");
         dto.Category = Console.ReadLine();
 
-        Console.Write("Enter Product Price     : ");
+        Console.Write("Price     : ");
         dto.Price = decimal.Parse(Console.ReadLine()!);
 
-        Console.Write("Enter Product Quantity  : ");
+        Console.Write("Quantity  : ");
         dto.Quantity = int.Parse(Console.ReadLine()!);
 
-        Line();
-        Console.WriteLine("1. Save Product");
-        Console.WriteLine("2. Cancel");
-        Console.Write("\nEnter your choice: ");
-
-        if (Console.ReadLine() != "1")
+        Console.Write("\nSave product? (Y/N): ");
+        if (!Console.ReadLine()!.Equals("Y", StringComparison.OrdinalIgnoreCase))
         {
             Console.WriteLine("Operation cancelled.");
             Pause();
@@ -95,10 +103,9 @@ class Program
 
         var response = await client.PostAsJsonAsync("api/products", dto);
 
-        Line();
         Console.WriteLine(response.IsSuccessStatusCode
-            ? "Product added successfully."
-            : "Error adding product.");
+            ? "\nProduct added successfully."
+            : "\nError adding product.");
 
         Pause();
     }
@@ -110,13 +117,26 @@ class Program
 
         var products = await client.GetFromJsonAsync<ProductReadDto[]>("api/products");
 
-        Console.WriteLine("ID   Name        Category        Price     Quantity");
-        Line();
+        if (products == null || products.Length == 0)
+        {
+            Console.WriteLine("No products found.");
+            Pause();
+            return;
+        }
 
-        foreach (var p in products!)
-            Console.WriteLine($"{p.ProductId,-4} {p.Name,-10} {p.Category,-15} {p.Price,-9} {p.Quantity}");
+        TableHeader();
 
-        Line();
+        foreach (var p in products)
+        {
+            Console.WriteLine(
+                $"{p.ProductId,-4} " +
+                $"{Cut(p.Name, 15),-15} " +
+                $"{Cut(p.Category, 15),-15} " +
+                $"{p.Price,12:F2} " +
+                $"{p.Quantity,8}");
+        }
+
+        Console.WriteLine(new string('-', 58));
         Console.WriteLine($"Total Products: {products.Length}");
 
         Pause();
@@ -125,13 +145,17 @@ class Program
     // ---------------- VIEW BY ID ----------------
     static async Task ViewProductById(HttpClient client)
     {
-        Header("View Product");
+        Header("View Product by ID");
 
         Console.Write("Enter Product ID: ");
-        int id = int.Parse(Console.ReadLine()!);
+        if (!int.TryParse(Console.ReadLine(), out int id))
+        {
+            Console.WriteLine("Invalid ID.");
+            Pause();
+            return;
+        }
 
         var response = await client.GetAsync($"api/products/{id}");
-
         if (!response.IsSuccessStatusCode)
         {
             Console.WriteLine("Product not found.");
@@ -141,9 +165,13 @@ class Program
 
         var p = await response.Content.ReadFromJsonAsync<ProductReadDto>();
 
-        Console.WriteLine("\nID   Name        Category        Price     Quantity");
-        Line();
-        Console.WriteLine($"{p!.ProductId,-4} {p.Name,-10} {p.Category,-15} {p.Price,-9} {p.Quantity}");
+        TableHeader();
+        Console.WriteLine(
+            $"{p!.ProductId,-4} " +
+            $"{Cut(p.Name, 15),-15} " +
+            $"{Cut(p.Category, 15),-15} " +
+            $"{p.Price,12:F2} " +
+            $"{p.Quantity,8}");
 
         Pause();
     }
@@ -154,9 +182,14 @@ class Program
         Header("Update Product");
 
         Console.Write("Enter Product ID: ");
-        int id = int.Parse(Console.ReadLine()!);
+        if (!int.TryParse(Console.ReadLine(), out int id))
+        {
+            Console.WriteLine("Invalid ID.");
+            Pause();
+            return;
+        }
 
-        var dto = new ProductUpdateDto { ProductId = id };
+        var dto = new ProductUpdateDto();
 
         Console.Write("New Name      : ");
         dto.Name = Console.ReadLine();
@@ -174,7 +207,7 @@ class Program
 
         Console.WriteLine(response.IsSuccessStatusCode
             ? "\nProduct updated successfully."
-            : "\nError updating product.");
+            : "\nUpdate failed.");
 
         Pause();
     }
@@ -201,31 +234,40 @@ class Program
     {
         Header("Search Products");
 
-        Console.WriteLine("1. Search by Name");
-        Console.WriteLine("2. Search by Category");
-        Line();
-        Console.Write("Enter your choice: ");
-        Console.ReadLine();
-
-        Console.Write("Enter search text (partial allowed): ");
+        Console.Write("Enter search text (name/category): ");
         var query = Console.ReadLine()!.ToLower();
 
         var products = await client.GetFromJsonAsync<ProductReadDto[]>("api/products");
 
         var results = products!
-            .Where(p => p.Name!.ToLower().Contains(query) ||
-                        p.Category!.ToLower().Contains(query))
+            .Where(p =>
+                p.Name!.ToLower().Contains(query) ||
+                p.Category!.ToLower().Contains(query))
             .ToList();
 
-        Console.WriteLine("\nID   Name        Category        Price     Quantity");
-        Line();
+        if (!results.Any())
+        {
+            Console.WriteLine("No matching products found.");
+            Pause();
+            return;
+        }
+
+        TableHeader();
 
         foreach (var p in results)
-            Console.WriteLine($"{p.ProductId,-4} {p.Name,-10} {p.Category,-15} {p.Price,-9} {p.Quantity}");
+        {
+            Console.WriteLine(
+                $"{p.ProductId,-4} " +
+                $"{Cut(p.Name, 15),-15} " +
+                $"{Cut(p.Category, 15),-15} " +
+                $"{p.Price,12:F2} " +
+                $"{p.Quantity,8}");
+        }
 
-        Line();
+        Console.WriteLine(new string('-', 58));
         Console.WriteLine($"Total Results: {results.Count}");
 
         Pause();
     }
 }
+
