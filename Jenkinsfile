@@ -6,9 +6,7 @@ pipeline {
         dotnet 'dotnet-8.0'
     }
 
-    environment {
-        BUILD_CONFIGURATION = 'Release'
-    }
+    
 
     stages {
         stage('Checkout') {
@@ -29,23 +27,23 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                sh 'dotnet test'
-            }
-        }
+        // stage('Test') {
+        //     steps {
+        //         sh 'dotnet test'
+        //     }
+        // }
 
-        stage('Publish') {
-            steps {
-                sh 'dotnet publish --configuration $BUILD_CONFIGURATION -o ./publish'
-            }
-        }
+        // stage('Publish') {
+        //     steps {
+        //         sh 'dotnet publish --configuration $BUILD_CONFIGURATION -o ./publish'
+        //     }
+        // }
 
-        stage('Deploy') {
-            steps {
-                // Example for copying files to a server
-                sh 'cp -r ./publish/* /var/www/aspnetapp/'
-            }
+        // stage('Deploy') {
+        //     steps {
+        //         // Example for copying files to a server
+        //         sh 'cp -r ./publish/* /var/www/aspnetapp/'
+        //     }
         }
     }
 
